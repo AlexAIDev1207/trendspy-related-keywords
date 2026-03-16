@@ -43,3 +43,12 @@ itchat.pkl
 QR.png
 .history
 venv/
+.venv/
+
+# 虚拟环境（根目录创建的 venv 相关目录）
+bin/
+include/
+lib/
+lib64
+share/
+pyvenv.cfg

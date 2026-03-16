@@ -4,25 +4,29 @@ from datetime import datetime, timedelta
 import schedule
 import time
 import random
-from querytrends import batch_get_queries, save_related_queries, RequestLimiter
+from querytrends import batch_get_queries, save_related_queries, RequestLimiter, get_gpts_ratio_batch
 import json
 import logging
 import backoff
 import argparse
 from config import (
-    EMAIL_CONFIG, 
-    KEYWORDS, 
-    RATE_LIMIT_CONFIG, 
+    EMAIL_CONFIG,
+    RATE_LIMIT_CONFIG,
     SCHEDULE_CONFIG,
     MONITOR_CONFIG,
     LOGGING_CONFIG,
     STORAGE_CONFIG,
     TRENDS_CONFIG,
-    NOTIFICATION_CONFIG
+    NOTIFICATION_CONFIG,
+    GPTS_FILTER_CONFIG,
+    GEMINI_CONFIG,
+    CONTENT_FILTER_CONFIG,
 )
 from notification import NotificationManager
+from keyword_loader import load_root_keywords
+from ai_analyzer import analyze_keywords_batch
 
-# Configure logging
+# Configure logging（必须在 load_root_keywords 之前，保证日志写入文件）
 logging.basicConfig(
     level=getattr(logging, LOGGING_CONFIG['level']),
     format=LOGGING_CONFIG['format'],
@@ -31,6 +35,9 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+# 从 markdown 词根文件动态加载关键词
+KEYWORDS = load_root_keywords()
 
 # 创建请求限制器实例
 request_limiter = RequestLimiter()
@@ -195,6 +202,147 @@ def get_trends_with_retry(keywords_batch, timeframe):
         )
     )
 
+def filter_by_gpts_ratio(high_rising_trends, timeframe):
+    """Stage 4: 用 gpts 搜索量比例过滤 rising 关键词"""
+    rising_kw_list = list({kw for _, kw, _ in high_rising_trends})  # 去重
+    ratio_map = get_gpts_ratio_batch(
+        rising_kw_list,
+        geo=TRENDS_CONFIG['geo'],
+        timeframe=timeframe
+    )
+    filtered = []
+    for root_kw, rising_kw, growth_val in high_rising_trends:
+        ratio = ratio_map.get(rising_kw, 0.0)
+        if ratio >= GPTS_FILTER_CONFIG['min_ratio']:
+            filtered.append((root_kw, rising_kw, growth_val, ratio))
+        else:
+            logging.info(f"Filtered: '{rising_kw}' ratio={ratio:.3f} < {GPTS_FILTER_CONFIG['min_ratio']}")
+    return filtered
+
+
+def _get_blacklist_category(keyword):
+    """检查关键词是否命中黑名单，返回类别名或 None。"""
+    kw_lower = keyword.lower()
+    for category, patterns in CONTENT_FILTER_CONFIG.items():
+        if any(p in kw_lower for p in patterns):
+            return category
+    return None
+
+
+def filter_blacklist_rising(high_rising_trends):
+    """
+    Stage 3.5: 在 gpts ratio 计算前提前过滤黑名单关键词。
+    避免对赌博/考试类词进行不必要的 gpts API 调用。
+    输入: [(root_kw, rising_kw, value), ...]
+    """
+    result = []
+    for root_kw, rising_kw, value in high_rising_trends:
+        category = _get_blacklist_category(rising_kw)
+        if category:
+            logging.info(f"Blacklist [{category}] pre-filtered: '{rising_kw}'")
+        else:
+            result.append((root_kw, rising_kw, value))
+    return result
+
+
+def filter_blacklist_content(enriched):
+    """
+    Stage 5.5: 黑名单内容过滤（AI分析后的兜底过滤）。
+    过滤掉赌博/灰黑产、考试试卷等与AI工具站无关的内容。
+    匹配规则：rising_keyword 转小写后包含任一黑名单词组即过滤。
+    """
+    result = []
+    for row in enriched:
+        category = _get_blacklist_category(row['rising_keyword'])
+        if category:
+            logging.info(f"Blacklist [{category}] filtered: '{row['rising_keyword']}'")
+        else:
+            result.append(row)
+    return result
+
+
+def generate_enhanced_report(enriched, directory):
+    """
+    Stage 6: 生成增强版报告。
+    - enhanced_report_YYYYMMDD.csv（6列）
+    - enhanced_report_YYYYMMDD.md（Markdown 表格，按 site_type 分组）
+    返回 (csv_path, md_path) 或 (None, None)。
+    """
+    if not enriched:
+        logging.info("No enriched data to write enhanced report")
+        return None, None
+
+    today = datetime.now().strftime('%Y%m%d')
+    prefix = STORAGE_CONFIG['enhanced_report_prefix']
+
+    # --- CSV ---
+    csv_filename = f"{prefix}{today}.csv"
+    csv_path = os.path.join(directory, csv_filename)
+    df = pd.DataFrame(enriched, columns=[
+        'root_keyword', 'rising_keyword', 'growth_value',
+        'gpts_ratio', 'search_intent', 'site_type'
+    ])
+    df.to_csv(csv_path, index=False)
+    logging.info(f"Enhanced CSV report saved: {csv_path}")
+
+    # --- Markdown ---
+    md_filename = f"{prefix}{today}.md"
+    md_path = os.path.join(directory, md_filename)
+
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    timeframe_display = TRENDS_CONFIG['timeframe']
+    total_roots = len(KEYWORDS)
+    rising_threshold = MONITOR_CONFIG['rising_threshold']
+    min_ratio = GPTS_FILTER_CONFIG['min_ratio']
+
+    lines = [
+        f"# 每日趋势增强报告 - {date_str}",
+        "",
+        f"> 监控周期: {timeframe_display} | 词根数: {total_roots} | Rising过滤: >{rising_threshold}% | GPTs比例过滤: ≥{min_ratio}",
+        "",
+    ]
+
+    site_types = ["工具站", "内容站", "游戏站", "目录站"]
+    for st in site_types:
+        group = [row for row in enriched if row.get('site_type') == st]
+        if not group:
+            continue
+        lines.append(f"## {st}机会")
+        lines.append("")
+        lines.append("| 词根 | Rising关键词 | 增长率 | GPTs比值 | 搜索意图 |")
+        lines.append("|------|------------|--------|----------|---------|")
+        for row in group:
+            gv = row['growth_value']
+            growth_display = f"{gv}%" if isinstance(gv, (int, float)) else str(gv)
+            lines.append(
+                f"| {row['root_keyword']} | {row['rising_keyword']} | "
+                f"{growth_display} | {row['gpts_ratio']:.4f} | {row['search_intent']} |"
+            )
+        lines.append("")
+
+    # 未分类（site_type 不在上述四类中）
+    others = [row for row in enriched if row.get('site_type') not in site_types]
+    if others:
+        lines.append("## 其他")
+        lines.append("")
+        lines.append("| 词根 | Rising关键词 | 增长率 | GPTs比值 | 搜索意图 | 类型 |")
+        lines.append("|------|------------|--------|----------|---------|------|")
+        for row in others:
+            gv = row['growth_value']
+            growth_display = f"{gv}%" if isinstance(gv, (int, float)) else str(gv)
+            lines.append(
+                f"| {row['root_keyword']} | {row['rising_keyword']} | "
+                f"{growth_display} | {row['gpts_ratio']:.4f} | {row['search_intent']} | {row['site_type']} |"
+            )
+        lines.append("")
+
+    with open(md_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines))
+    logging.info(f"Enhanced Markdown report saved: {md_path}")
+
+    return csv_path, md_path
+
+
 def process_trends():
     """Main function to process trends data"""
     try:
@@ -228,13 +376,58 @@ def process_trends():
             
             # 如果不是最后一批，等待一段时间再处理下一批
             if i + RATE_LIMIT_CONFIG['batch_size'] < len(KEYWORDS):
-                wait_time = RATE_LIMIT_CONFIG['batch_interval'] + random.uniform(0, 60)
+                wait_time = RATE_LIMIT_CONFIG['batch_interval'] + random.uniform(
+                    0,
+                    RATE_LIMIT_CONFIG.get('batch_interval_jitter_max', 60)
+                )
                 logging.info(f"Waiting {wait_time:.1f} seconds before processing next batch...")
                 time.sleep(wait_time)
 
-        # Generate and send daily report
-        report_file = generate_daily_report(all_results, directory)
-        if report_file:
+        # Stage 3.5: 黑名单预过滤（在 gpts ratio 之前，节省 API 调用）
+        if high_rising_trends:
+            before_count = len(high_rising_trends)
+            high_rising_trends = filter_blacklist_rising(high_rising_trends)
+            logging.info(f"After blacklist pre-filter: {len(high_rising_trends)}/{before_count} rising trends remain")
+
+        # Stage 4: gpts 比例过滤
+        if high_rising_trends:
+            logging.info(f"Stage 4: filtering {len(high_rising_trends)} rising trends by gpts ratio...")
+            gpts_filtered = filter_by_gpts_ratio(high_rising_trends, actual_timeframe)
+            logging.info(f"After gpts filter: {len(gpts_filtered)}/{len(high_rising_trends)} keywords remain")
+        else:
+            gpts_filtered = []
+
+        # Stage 5: Gemini AI 分析
+        if gpts_filtered:
+            logging.info(f"Stage 5: running Gemini analysis on {len(gpts_filtered)} keywords...")
+            rising_kw_list = [kw for _, kw, _, _ in gpts_filtered]
+            analysis_results = analyze_keywords_batch(rising_kw_list)
+            analysis_map = {r['keyword']: r for r in analysis_results}
+            enriched = [{
+                'root_keyword': rk,
+                'rising_keyword': kw,
+                'growth_value': gv,
+                'gpts_ratio': round(ratio, 4),
+                'search_intent': analysis_map.get(kw, {}).get('search_intent', ''),
+                'site_type': analysis_map.get(kw, {}).get('site_type', ''),
+            } for rk, kw, gv, ratio in gpts_filtered]
+        else:
+            enriched = []
+
+        # Stage 5.5: 黑名单内容过滤（赌博/灰黑产、考试试卷）
+        if enriched:
+            before_count = len(enriched)
+            enriched = filter_blacklist_content(enriched)
+            logging.info(f"After blacklist filter: {len(enriched)}/{before_count} keywords remain")
+
+        # Stage 6: 生成报告（保留原有 legacy，新增 enhanced）
+        legacy_report = generate_daily_report(all_results, directory)
+        enhanced_csv, enhanced_md = generate_enhanced_report(enriched, directory)
+
+        # Stage 7: 通知（附件包含两种报告）
+        attachments = [f for f in [legacy_report, enhanced_csv, enhanced_md] if f]
+
+        if legacy_report:
             report_body = """
             <h2>Daily Trends Report</h2>
             <p>Please find attached the daily trends report.</p>
@@ -248,22 +441,24 @@ def process_trends():
             <li>Total keywords processed: {}</li>
             <li>Successful queries: {}</li>
             <li>Failed queries: {}</li>
+            <li>Rising trends after gpts filter: {}</li>
             </ul>
             """.format(
                 TRENDS_CONFIG['timeframe'],
                 TRENDS_CONFIG['geo'] or 'Global',
                 len(KEYWORDS),
                 len(all_results),
-                len(KEYWORDS) - len(all_results)
+                len(KEYWORDS) - len(all_results),
+                len(enriched)
             )
             if not notification_manager.send_notification(
                 subject=f"Daily Trends Report - {datetime.now().strftime('%Y-%m-%d')}",
                 body=report_body,
-                attachments=[report_file]
+                attachments=attachments
             ):
                 logging.warning("Failed to send daily report, but data collection completed")
-        
-        # Send alerts for high rising trends
+
+        # Send alerts for high rising trends (original alert logic kept for backward compat)
         if high_rising_trends:
             # 将高趋势分批处理，每批最多10个趋势
             batch_size = 10
@@ -271,7 +466,7 @@ def process_trends():
                 batch_trends = high_rising_trends[i:i + batch_size]
                 batch_number = i // batch_size + 1
                 total_batches = (len(high_rising_trends) + batch_size - 1) // batch_size
-                
+
                 alert_body = f"""
                 <h2>📊 High Rising Trends Alert</h2>
                 <hr>
@@ -288,7 +483,7 @@ def process_trends():
                         <th>📈 Growth</th>
                     </tr>
                 """
-                
+
                 for keyword, related_keywords, value in batch_trends:
                     alert_body += f"""
                     <tr>
@@ -297,18 +492,18 @@ def process_trends():
                         <td align="right" style="color: #28a745;">⬆️ {value}%</td>
                     </tr>
                     """
-                
+
                 alert_body += "</table>"
-                
+
                 if batch_number < total_batches:
                     alert_body += f"<p><i>This is batch {batch_number} of {total_batches}. More results will follow.</i></p>"
-                
+
                 if not notification_manager.send_notification(
                     subject=f"📊 Rising Trends Alert ({batch_number}/{total_batches})",
                     body=alert_body
                 ):
                     logging.warning(f"Failed to send alert notification for batch {batch_number}, but data collection completed")
-                
+
                 # 添加短暂延迟，避免消息发送过快
                 time.sleep(2)
         
@@ -377,7 +572,6 @@ if __name__ == "__main__":
         logging.info("Running in test mode...")
         if args.keywords:
             # 临时替换配置文件中的关键词
-            global KEYWORDS
             KEYWORDS = args.keywords
             logging.info(f"Using test keywords: {KEYWORDS}")
         process_trends()

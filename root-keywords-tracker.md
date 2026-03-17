@@ -1,7 +1,7 @@
 # 词根维护表 (Root Keywords Tracker)
 
-> 更新日期：2026-03-16
-> 版本：v4.0 — 基于20260316报告分析，聚焦AI工具站方向：删除12个噪音词根，降级5个低优先词根，新增3个AI工具精准词根（solver/helper/resizer），词根总数从109降至100
+> 更新日期：2026-03-17
+> 版本：v5.0 — 基于20260317报告分析：删除18个高噪音/重叠词根（sender/crawler/composer/layout/ideas/pricing/coloring page/emoji/picture/portrait/illustration/filter/cartoon/narrator/comparator/rephraser/tester/classifier），新增12个精准词根（游戏方向4个+工具精准化8个），词根总数从95降至89。目标：噪音率从40%降至15%以下
 > 用途：用于 Google Trends 日常监控与新词发现
 
 ## 优先级说明
@@ -31,7 +31,6 @@
 | **maker** | logo maker, gif maker, meme maker, song maker | 低门槛制作工具；AI 降低制作门槛的垂直工具站 | API订阅 / Freemium | 🔥 |
 | **builder** | resume builder, website builder, schedule builder, career builder | AI 工作流构建器；自动化网站/简历/计划生成工具 | SaaS订阅 | ⭐ |
 | **writer** | AI writer, essay writer, email writer, blog writer, script writer | AI 写作助手；细分领域专业写作工具（论文/营销/简历） | API订阅 / Freemium | 🔥 |
-| **composer** | cursor composer, pixel composer, animation composer | AI 音乐创作辅助；编曲/作曲工具站（被 music 词根覆盖，低优先观察） | 订阅 / Freemium | 📌 |
 
 ---
 
@@ -50,7 +49,6 @@
 | 词根 | 代表关键词组合 | 建站方向 | 变现逻辑 | 优先级 |
 |:---|:---|:---|:---|:---|
 | **alternative** | midjourney alternative, chatgpt alternative, canva alternative | 截流竞品流量，引导用户找平替（转化率极高） | 联盟营销 (Affiliate) | 🔥 |
-| **pricing** | [Product] pricing, cost, plan | 价格页面截流，用户临近购买决策 | 联盟营销 (Affiliate) | 📌 |
 | **best** | best ai tools, best xx app, best movies | AI 个性化推荐站；产品对比导航 | 联盟营销 / Affiliate | ⭐ |
 | **directory** | tool directory, ai tool directory, staff directory | AI 工具目录导航；垂直行业资源目录 | 广告变现 / 付费收录 | ⭐ |
 | **finder** | font finder, scrabble word finder, faceit finder | AI 识别查找器；本地化服务查找推荐 | 广告变现 / Affiliate | ⭐ |
@@ -67,9 +65,6 @@
 | **format** | mla format, apa format, resume format, json formatter | 文件格式模板站；格式优化/转换工具 | 广告变现 / 订阅 | ⭐ |
 | **formatter** | resume formatter, apa formatter, json formatter, text formatter | 文档格式化工具；学生/职场刚需，与 format 互补捕捉长尾 | 广告变现 / 订阅 | ⭐ |
 | **model** | ai model, alibaba ai model, gfs model | 新 AI 大模型出现时截流，做套壳工具站 | API订阅 / 广告 | ⭐ |
-| **layout** | kitchen layout ideas, room layout planner, interior layout ai | AI 设计布局规划工具（室内/厨房设计）；与 interior design 词根协同 | Freemium / 订阅 | 📌 |
-| **ideas** | dinner ideas, date ideas, breakfast ideas | 生活创意内容站 + AI 创意生成工具；节日热点流量 | 广告变现 | 📌 |
-| **dashboard** | stripe dashboard, google dashboard, teacher dashboard | AI 数据看板构建器；智能分析仪表盘 | SaaS订阅 | ⭐ |
 
 ---
 
@@ -89,7 +84,6 @@
 | **saver** | story saver, status saver, reel saver, pin saver | 社交媒体内容保存工具（移动端刚需） | 广告变现 (CPM) | ⭐ |
 | **extractor** | audio extractor, text extractor from image, email extractor, youtube transcript extractor | AI 强化 OCR；结构化信息提取服务（发票/证件/财报） | API订阅 / Freemium | 🔥 |
 | **scraper** | web scraper, data scraper | AI 爬虫工具（偏开发者向，低优先观察） | SaaS订阅 / API | 📌 |
-| **crawler** | web crawler, list crawler | AI 爬虫工具（与 scraper 高度重叠，低优先观察） | SaaS订阅 | 📌 |
 
 ---
 
@@ -100,6 +94,7 @@
 | **converter** | pdf converter, youtube converter, currency converter, zawgyi to unicode | 文件/单位/格式转换工具（新格式出现时快速建站） | 广告变现 (AdSense) | 🔥 |
 | **translator** | spanish translator, japanese translator, morse code translator | 小众语言/特殊编码翻译器；游戏影视语言转换工具 | 广告变现 / 订阅 | ⭐ |
 | **compressor** | image compressor, video compressor, pdf compressor, gif compressor | 极简压缩工具站（刚需高频，适合极简单页工具） | 广告变现 (AdSense) | 🔥 |
+| **pdf to** | pdf to word, pdf to jpg, pdf to excel, pdf to png | 转换工具最高频搜索格式；精确捕捉 "pdf to X" 长尾词 | 广告变现 (AdSense) | 🔥 |
 
 ---
 
@@ -109,6 +104,7 @@
 |:---|:---|:---|:---|:---|
 | **editor** | pdf editor, photo editor, video editor, code editor, json editor | 在线轻量编辑器；细分新格式编辑工具 | 广告变现 / 订阅 | 🔥 |
 | **remover** | background remover, watermark remover, vocal remover, object remover | AI 一键移除工具（背景/水印/人声/对象） | 广告变现 / 订阅 | 🔥 |
+| **background remover** | background remover free, remove bg online, photo background eraser | 比 remover 更精准定位 AI 图片工具最热子类；搜索量大且意图明确 | Freemium / 订阅 | 🔥 |
 | **optimizer** | prompt optimizer, image optimizer, avatar optimizer | 提示词/图像/代码优化器 | Freemium / 订阅 | ⭐ |
 | **enhancer** | image enhancer, photo enhancer, video enhancer | AI 图像/视频超分辨率增强工具 | API订阅 / Freemium | ⭐ |
 
@@ -120,15 +116,15 @@
 |:---|:---|:---|:---|:---|
 | **checker** | ai content checker, ai detector checker, seo checker, link checker, spell checker | 聚焦 AI 内容检测方向（grammar/plagiarism 已被 Grammarly 垄断）；ai content checker / ai detector 是当前红利期 | 专业版订阅 / Affiliate | 🔥 |
 | **detector** | ai content detector, smoke detector, lie detector, language detector | AI 生成内容检测（当前红利期）；低难度细分检测器 | 专业版订阅 | 🔥 |
+| **ai detector** | ai detector free, ai content detector, chatgpt detector, ai writing detector | 精准定位 AI 检测赛道；比泛 detector 减少烟雾报警器等噪音 | 专业版订阅 | 🔥 |
 | **humanizer** | ai text humanizer, content humanizer, article humanizer | AI 内容去检测/润色工具（AI 写作普及后强需求） | Freemium / 订阅 | 🔥 |
 | **scanner** | qr code scanner, barcode scanner, doc scanner, port scanner | 二维码/文档扫描工具（移动端流量大） | 广告变现 / 订阅 | ⭐ |
 | **calculator** | mortgage calculator, bmi calculator, grade calculator, game calculator | 计算器矩阵（长尾词极丰富）；游戏专用计算器 | 广告变现 / 引流 | 🔥 |
 | **analyzer** | trade analyzer, wifi analyzer, dpi analyzer, spectrum analyzer | 行业数据分析工具（搜索量偏低，适合细分） | 专业版订阅 | ⭐ |
-| **classifier** | image classifier, text classifier, ai classifier, document classifier | AI 分类工具；内容自动归类（技术向，开发者受众） | SaaS订阅 / API | ⭐ |
 | **validator** | email validator, data validator, json validator, url validator | B2B 数据验证工具；API 级别服务（金融/营销方向） | API计费 / SaaS | ⭐ |
 | **predictor** | stock predictor, ai predictor, trend predictor, outcome predictor | AI 预测工具；行业垂直预测站 | Freemium / 订阅 | 📌 |
-| **tester** | software tester, voltage tester, beta tester, penetration tester | 编程测试器；网络工具测试器（与 AI 关联一般） | 广告变现 | 📌 |
-| **verifier** | email verifier, phone number verifier, id document verifier | B2B 身份验证服务（金融/政务方向，低优先观察） | API计费 / SaaS | 📌 |
+| **spell check** | spell check online, spell checker free, grammar and spell check | 精准定位拼写校正工具需求；比 checker 减少 SEO checker 等噪音 | Freemium / 广告 | ⭐ |
+| **plagiarism** | plagiarism checker free, plagiarism detector, check for plagiarism | 学术查重工具独立赛道；高搜索量+高付费意愿 | Freemium / 订阅 | 🔥 |
 
 ---
 
@@ -143,21 +139,19 @@
 
 ---
 
-## 十一、数据发送 / 接收类
+## 十一、数据接收 / 记录类
 
 | 词根 | 代表关键词组合 | 建站方向 | 变现逻辑 | 优先级 |
 |:---|:---|:---|:---|:---|
-| **sender** | bulk email sender, large file sender, anonymous message sender | 批量发送 SaaS；安全加密文件传输服务 | SaaS订阅 | ⭐ |
 | **recorder** | voice recorder, screen recorder, call recorder, data recorder | AI 增强录音/录屏工具（结合 AI 降噪/转写） | Freemium / 订阅 | ⭐ |
 
 ---
 
-## 十二、查看 / 监控类
+## 十二、查看类
 
 | 词根 | 代表关键词组合 | 建站方向 | 变现逻辑 | 优先级 |
 |:---|:---|:---|:---|:---|
 | **viewer** | pdf viewer, tiktok story viewer, 3D file viewer, DICOM viewer | AI 增强查看器（医学/建筑细分）；匿名社交内容查看 | 广告变现 / 专业订阅 | ⭐ |
-| **comparator** | price comparator, image comparison, car comparison tool | AI 深度产品/文件对比分析工具 | 广告变现 / Affiliate | ⭐ |
 
 ---
 
@@ -167,6 +161,10 @@
 |:---|:---|:---|:---|:---|
 | **cheat** | sims 4 cheats, gta 5 cheat codes, words with friends cheat | 游戏作弊器/秘籍站（流量大） | 广告变现 (CPM) | 🔥 |
 | **simulator** | trading simulator, driving simulator, circuit simulator, life simulator, interview simulator | AI 职业培训/技能训练模拟器（面试模拟/驾驶培训/交易模拟）；学习类变现能力强 | Freemium / 订阅 | 🔥 |
+| **tier list** | clash royale tier list, genshin tier list, anime tier list, champion tier list | 游戏角色/装备排行榜；每次版本更新都有搜索爆发；20260317发现 best hero clash royale 首页零网站竞争 | 广告变现 / 游戏联盟 | 🔥 |
+| **best deck** | best deck clash royale, best deck marvel snap, best deck pokemon tcg | 游戏卡组推荐；卡牌游戏玩家高频需求；每次 meta 更新流量回升 | 广告变现 / 游戏联盟 | 🔥 |
+| **redeem code** | genshin redeem code, roblox redeem code, free fire redeem code today | 游戏兑换码聚合；每次新码发布搜索爆发；20260317发现 seven deadly sins origin code 在涨 | 广告变现 (CPM) | 🔥 |
+| **walkthrough** | game walkthrough, puzzle walkthrough, quest walkthrough | 游戏通关攻略；长尾词丰富；内容站经典模式 | 广告变现 / 游戏联盟 | ⭐ |
 
 ---
 
@@ -174,13 +172,13 @@
 
 | 词根 | 代表关键词组合 | 建站方向 | 变现逻辑 | 优先级 |
 |:---|:---|:---|:---|:---|
-| **solver** | wordle solver, crossword solver, math solver, equation solver, sudoku solver, word problem solver | 谜题/解题工具站；今天采集到多条 crossword/7-little-words 词说明持续需求强；无垄断玩家，intitle 供应低 | 广告变现 / Freemium | 🔥 |
+| **solver** | wordle solver, crossword solver, math solver, equation solver, sudoku solver, word problem solver | 谜题/解题工具站；持续需求强；无垄断玩家，intitle 供应低 | 广告变现 / Freemium | 🔥 |
 | **summarizer** | text summarizer, pdf summarizer, youtube video summarizer, book summarizer | AI 多模态摘要工具（文字/音视频/文档均可）；科研/新闻个性化摘要 | API订阅 / Freemium | 🔥 |
 | **transcriber** | audio transcriber, video transcriber free, interview transcription | 语音/视频转文字工具（可与摘要结合为一站式产品） | Freemium / 订阅 | ⭐ |
 | **paraphraser** | online paraphrasing tool free, academic paraphrasing, sentence rephraser | 论文改写/降重工具（通用竞争激烈，细分有机会） | Freemium / 订阅 | ⭐ |
 | **rewriter** | ai rewriter, essay rewriter, article rewriter, sentence rewriter | AI 改写工具；与 paraphraser 互补，捕捉不同长尾词 | Freemium / 订阅 | 🔥 |
 | **proofreader** | ai proofreader, grammar proofreader online, free proofreader tool | AI 校对工具；学生/职场刚需，竞争低于 grammar checker | Freemium / 订阅 | 🔥 |
-| **rephraser** | sentence rephraser, paragraph rephraser, ai rephraser online | 改写工具；比 paraphraser 搜索意图更精准 | Freemium / 订阅 | ⭐ |
+| **word counter** | word counter online, character counter, word count tool | 极简文本统计工具；搜索量稳定；技术门槛极低可快速建站 | 广告变现 (AdSense) | ⭐ |
 
 ---
 
@@ -200,16 +198,10 @@
 | **product photo** | ai product photo generator, product image background remover | AI 电商产品图生成（高商业价值，B端需求强） | 订阅 / 按量计费 | 🔥 |
 | **icon** | icon generator, app icon maker, favicon generator | AI 图标生成工具 | Freemium / 订阅 | ⭐ |
 | **chart** | chart maker, gantt chart, flow chart, stock chart analysis | AI 图表生成器（上传数据 → 自动可视化） | Freemium / 订阅 | ⭐ |
-| **filter** | instagram filters, tiktok filters, snapchat face filters | 特定图片风格/滤镜工具（蹭某种滤镜爆火时快速建站） | Freemium / 广告 | ⭐ |
 | **font** | font generator, font finder, google fonts | AI 字体生成工具；字体识别/匹配工具 | Freemium / 广告 | ⭐ |
-| **illustration** | ai illustration generator, digital illustration, art illustration | AI 插画生成工具（设计/内容创作） | Freemium / 订阅 | ⭐ |
-| **portrait** | ai portrait generator, portrait photo editor | AI 人像生成/艺术化美化工具 | Freemium / 订阅 | ⭐ |
-| **resizer** | image resizer, photo resizer, image resizer 100kb, image resizer 50kb, video resizer | 图片/视频精确尺寸调整工具；今天发现intitle供应仅3页，无垄断玩家；捕捉 "resize to Xkb" 长尾词 | 广告变现 / Freemium | ⭐ |
-| **cartoon** | cartoon yourself, ai cartoon generator, cartoon avatar | AI 卡通化/漫画风格转换工具 | Freemium / 广告 | ⭐ |
-| **emoji** | emoji generator, emoji translator, new emoji update | 个性化 Emoji 生成器；文本转 Emoji 工具 | 广告变现 / Freemium | 📌 |
-| **picture** | profile picture maker, picture frames, picture dictionary | AI 绘画/头像生成；图片风格迁移工具 | Freemium / 订阅 | ⭐ |
+| **resizer** | image resizer, photo resizer, image resizer 100kb, image resizer 50kb, video resizer | 图片/视频精确尺寸调整工具；intitle供应仅3页，无垄断玩家；捕捉 "resize to Xkb" 长尾词 | 广告变现 / Freemium | ⭐ |
 | **diagram** | ai diagram generator, flowchart maker, uml diagram, erd diagram | AI 流程图/架构图自动生成工具 | Freemium / 订阅 | ⭐ |
-| **coloring page** | ai coloring page generator, kids coloring page, adult coloring | AI 涂色页生成工具（教育/儿童市场，非主力方向） | Freemium / 广告 | 📌 |
+| **qr code** | qr code generator, qr code scanner, qr code maker free | 二维码生成/扫描工具；精确定位比 scanner 更准；搜索量大且稳定 | 广告变现 / Freemium | 🔥 |
 
 ---
 
@@ -219,7 +211,7 @@
 |:---|:---|:---|:---|:---|
 | **music** | music streaming, download music free, music radio, music generator | AI 音乐生成；音轨分离（人声/伴奏）工具 | Freemium / 订阅 | 🔥 |
 | **audio** | audio editor online, convert video to audio, audio interface | AI 音频编辑/降噪/源分离工具 | Freemium / 订阅 | ⭐ |
-| **narrator** | ai narrator, text narrator, story narrator, video narrator | TTS 叙述工具；播客/有声书/视频配音方向 | Freemium / 订阅 | ⭐ |
+| **text to speech** | text to speech free, tts online, text to speech ai | TTS 在线工具；比 narrator 更精准定位用户搜索意图；播客/有声书/视频配音方向 | Freemium / 订阅 | 🔥 |
 
 ---
 

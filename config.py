@@ -85,6 +85,15 @@ GPTS_FILTER_CONFIG = {
     'pre_filter_threshold': 0,          # 预筛阈值：0=不启用；设为如1000则只对>=1000%的词查gpts，减少批次数
 }
 
+# 关键词长度过滤配置（GPTs 阶段前，跳过不适合建站的长关键词）
+KEYWORD_LENGTH_FILTER = {
+    'enabled': True,
+    'max_words': 4,           # 超过此词数的关键词跳过 GPTs 查询
+    'max_chars': 30,          # 超过此字符数的关键词跳过 GPTs 查询
+    'dedup_enabled': True,    # 启用去重：短词已覆盖的长词变体跳过 GPTs 查询
+    'min_subset_words': 2,    # 去重时短词至少包含的词数（避免单词误匹配）
+}
+
 # 请求异常等待配置
 RETRY_WAIT_CONFIG = {
     'rate_limit_wait_min_seconds': 300,     # 429/API quota 最小等待

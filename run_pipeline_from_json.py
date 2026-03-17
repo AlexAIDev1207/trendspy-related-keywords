@@ -15,6 +15,7 @@ from config import (
     MONITOR_CONFIG, LOGGING_CONFIG, STORAGE_CONFIG,
     TRENDS_CONFIG, GPTS_FILTER_CONFIG, GEMINI_CONFIG,
     CONTENT_FILTER_CONFIG, NOTIFICATION_CONFIG,
+    KEYWORD_LENGTH_FILTER,
 )
 from querytrends import get_gpts_ratio_batch
 from ai_analyzer import analyze_keywords_batch
@@ -71,6 +72,61 @@ def load_results_from_json(directory: str):
     return all_results, high_rising_trends
 
 
+def filter_long_keywords(
+    trends: list[tuple],
+) -> tuple[list[tuple], list[tuple]]:
+    """过滤不适合建站的长关键词，返回 (保留列表, 跳过列表)。"""
+    cfg = KEYWORD_LENGTH_FILTER
+    if not cfg.get('enabled', False):
+        return trends, []
+
+    max_words = cfg['max_words']
+    max_chars = cfg['max_chars']
+    kept, skipped = [], []
+
+    for item in trends:
+        _, rising_kw, _ = item
+        words = len(rising_kw.split())
+        chars = len(rising_kw)
+        if words > max_words or chars > max_chars:
+            skipped.append(item)
+        else:
+            kept.append(item)
+
+    return kept, skipped
+
+
+def dedup_subset_keywords(
+    trends: list[tuple],
+) -> tuple[list[tuple], list[tuple]]:
+    """去重：如果短词的所有单词都出现在长词中，跳过长词变体。"""
+    cfg = KEYWORD_LENGTH_FILTER
+    if not cfg.get('dedup_enabled', False):
+        return trends, []
+
+    min_subset = cfg.get('min_subset_words', 2)
+    sorted_by_len = sorted(trends, key=lambda x: len(x[1]))
+    kept_set: set[int] = set(range(len(sorted_by_len)))
+    skipped_indices: set[int] = set()
+
+    for i, (_, long_kw, _) in enumerate(sorted_by_len):
+        if i in skipped_indices:
+            continue
+        long_words = set(long_kw.lower().split())
+        for j in range(i):
+            if j in skipped_indices:
+                continue
+            short_kw = sorted_by_len[j][1]
+            short_words = set(short_kw.lower().split())
+            if len(short_words) >= min_subset and short_words.issubset(long_words):
+                skipped_indices.add(i)
+                break
+
+    kept = [sorted_by_len[i] for i in range(len(sorted_by_len)) if i not in skipped_indices]
+    skipped = [sorted_by_len[i] for i in skipped_indices]
+    return kept, skipped
+
+
 def run_pipeline(date_str: str, skip_gpts: bool = False):
     directory = f"{STORAGE_CONFIG['data_dir_prefix']}{date_str}"
     if not os.path.isdir(directory):
@@ -88,6 +144,27 @@ def run_pipeline(date_str: str, skip_gpts: bool = False):
         before = len(high_rising_trends)
         high_rising_trends = filter_blacklist_rising(high_rising_trends)
         logging.info(f"Stage 3.5 黑名单过滤: {len(high_rising_trends)}/{before} 条保留")
+
+    # Stage 3.6: 长关键词过滤（跳过不适合建站的长词，减少 GPTs API 调用）
+    if high_rising_trends:
+        before = len(high_rising_trends)
+        high_rising_trends, long_skipped = filter_long_keywords(high_rising_trends)
+        if long_skipped:
+            logging.info(
+                f"Stage 3.6 长词过滤（>{KEYWORD_LENGTH_FILTER['max_words']}词/"
+                f">{KEYWORD_LENGTH_FILTER['max_chars']}字符）: "
+                f"{len(high_rising_trends)}/{before} 条保留，跳过 {len(long_skipped)} 条"
+            )
+
+    # Stage 3.7: 子集去重（短词已覆盖的长词变体跳过 GPTs 查询）
+    if high_rising_trends:
+        before = len(high_rising_trends)
+        high_rising_trends, dedup_skipped = dedup_subset_keywords(high_rising_trends)
+        if dedup_skipped:
+            logging.info(
+                f"Stage 3.7 子集去重: {len(high_rising_trends)}/{before} 条保留，"
+                f"跳过 {len(dedup_skipped)} 条变体词"
+            )
 
     # Stage 4: gpts 比例过滤
     if high_rising_trends and not skip_gpts:

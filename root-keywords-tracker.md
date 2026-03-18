@@ -1,7 +1,7 @@
 # 词根维护表 (Root Keywords Tracker)
 
-> 更新日期：2026-03-17
-> 版本：v5.0 — 基于20260317报告分析：删除18个高噪音/重叠词根（sender/crawler/composer/layout/ideas/pricing/coloring page/emoji/picture/portrait/illustration/filter/cartoon/narrator/comparator/rephraser/tester/classifier），新增12个精准词根（游戏方向4个+工具精准化8个），词根总数从95降至89。目标：噪音率从40%降至15%以下
+> 更新日期：2026-03-18
+> 版本：v5.1 — 基于20260318报告分析：删除2个持续高噪音词根（spell check产出词义查询而非工具需求，resizer连续2天产出印度政务噪音），词根总数89→87
 > 用途：用于 Google Trends 日常监控与新词发现
 
 ## 优先级说明
@@ -123,7 +123,6 @@
 | **analyzer** | trade analyzer, wifi analyzer, dpi analyzer, spectrum analyzer | 行业数据分析工具（搜索量偏低，适合细分） | 专业版订阅 | ⭐ |
 | **validator** | email validator, data validator, json validator, url validator | B2B 数据验证工具；API 级别服务（金融/营销方向） | API计费 / SaaS | ⭐ |
 | **predictor** | stock predictor, ai predictor, trend predictor, outcome predictor | AI 预测工具；行业垂直预测站 | Freemium / 订阅 | 📌 |
-| **spell check** | spell check online, spell checker free, grammar and spell check | 精准定位拼写校正工具需求；比 checker 减少 SEO checker 等噪音 | Freemium / 广告 | ⭐ |
 | **plagiarism** | plagiarism checker free, plagiarism detector, check for plagiarism | 学术查重工具独立赛道；高搜索量+高付费意愿 | Freemium / 订阅 | 🔥 |
 
 ---
@@ -199,7 +198,6 @@
 | **icon** | icon generator, app icon maker, favicon generator | AI 图标生成工具 | Freemium / 订阅 | ⭐ |
 | **chart** | chart maker, gantt chart, flow chart, stock chart analysis | AI 图表生成器（上传数据 → 自动可视化） | Freemium / 订阅 | ⭐ |
 | **font** | font generator, font finder, google fonts | AI 字体生成工具；字体识别/匹配工具 | Freemium / 广告 | ⭐ |
-| **resizer** | image resizer, photo resizer, image resizer 100kb, image resizer 50kb, video resizer | 图片/视频精确尺寸调整工具；intitle供应仅3页，无垄断玩家；捕捉 "resize to Xkb" 长尾词 | 广告变现 / Freemium | ⭐ |
 | **diagram** | ai diagram generator, flowchart maker, uml diagram, erd diagram | AI 流程图/架构图自动生成工具 | Freemium / 订阅 | ⭐ |
 | **qr code** | qr code generator, qr code scanner, qr code maker free | 二维码生成/扫描工具；精确定位比 scanner 更准；搜索量大且稳定 | 广告变现 / Freemium | 🔥 |
 

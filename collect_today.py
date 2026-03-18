@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-收集今日 (2026-03-17) Google Trends Rising 关键词
+收集今日 (2026-03-18) Google Trends Rising 关键词
 时间范围: now 1-d（过去24小时）
 过滤条件: Rising > 500% 或 Breakout
 """
@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from keyword_loader import load_root_keywords
 from querytrends import get_related_queries
 
-DATA_DIR = "data_20260317"
+DATA_DIR = "data_20260318"
 TIMEFRAME = "now 1-d"
 RISING_THRESHOLD = 500
 

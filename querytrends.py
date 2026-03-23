@@ -11,14 +11,17 @@ import re
 
 def get_related_queries(keyword, geo='', timeframe='today 12-m'):
     """
-    获取关键词的相关查询数据，带请求限制
+    获取关键词的相关查询数据，带请求限制。
+    429/API quota 连续重试超过 max_429_retries 次后跳过该关键词返回 None。
     """
     from config import RETRY_WAIT_CONFIG
 
-    while True:  # 添加无限重试循环
+    max_429 = RETRY_WAIT_CONFIG.get('max_429_retries', 5)
+    consecutive_429 = 0
+
+    while True:
         tr = Trends(hl='zh-CN')
-        
-        # 随机化 User-Agent
+
         user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -26,19 +29,16 @@ def get_related_queries(keyword, geo='', timeframe='today 12-m'):
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         ]
-        
+
         headers = {
             'referer': 'https://www.google.com/',
             'User-Agent': random.choice(user_agents),
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         }
-        
+
         try:
-            # 检查请求限制
             request_limiter.wait_if_needed()
-            
-            # 添加随机延时
             delay = random.uniform(0.5, 1.5)
             time.sleep(delay)
 
@@ -50,32 +50,30 @@ def get_related_queries(keyword, geo='', timeframe='today 12-m'):
             )
             print(f"成功获取数据！")
             return related_data
-            
+
         except Exception as e:
             error_msg = str(e)
             print(f"尝试获取数据时出错: {error_msg}")
-            
-            # 如果是配额超限错误，等待后重试
-            if "API quota exceeded" in error_msg:
+
+            is_rate_limit = (
+                "API quota exceeded" in error_msg
+                or "429" in error_msg
+                or "Too Many Requests" in error_msg
+            )
+
+            if is_rate_limit:
+                consecutive_429 += 1
+                if consecutive_429 >= max_429:
+                    print(f"关键词 '{keyword}' 连续 {consecutive_429} 次 429，跳过")
+                    return None
                 wait_time = random.uniform(
                     RETRY_WAIT_CONFIG.get('rate_limit_wait_min_seconds', 300),
                     RETRY_WAIT_CONFIG.get('rate_limit_wait_max_seconds', 360)
                 )
-                print(f"API配额超限，等待 {wait_time:.1f} 秒后重试...")
+                print(f"限流重试 {consecutive_429}/{max_429}，等待 {wait_time:.1f} 秒...")
                 time.sleep(wait_time)
-                continue  # 继续下一次重试
+                continue
 
-            # 如果是429限流错误，等待后重试
-            if "429" in error_msg or "Too Many Requests" in error_msg:
-                wait_time = random.uniform(
-                    RETRY_WAIT_CONFIG.get('rate_limit_wait_min_seconds', 300),
-                    RETRY_WAIT_CONFIG.get('rate_limit_wait_max_seconds', 360)
-                )
-                print(f"遭遇429限流，等待 {wait_time:.1f} 秒后重试...")
-                time.sleep(wait_time)
-                continue  # 继续下一次重试
-
-            # 如果是NoneType错误，也等待后重试
             if "'NoneType' object has no attribute 'raise_for_status'" in error_msg:
                 wait_time = random.uniform(
                     RETRY_WAIT_CONFIG.get('empty_response_wait_min_seconds', 60),
@@ -83,9 +81,8 @@ def get_related_queries(keyword, geo='', timeframe='today 12-m'):
                 )
                 print(f"请求返回为空，等待 {wait_time:.1f} 秒后重试...")
                 time.sleep(wait_time)
-                continue  # 继续下一次重试
+                continue
 
-            # 其他错误则直接抛出
             raise
 
 def batch_get_queries(keywords, geo='', timeframe='today 12-m', delay_between_queries=5):
@@ -253,9 +250,7 @@ request_limiter = RequestLimiter()
 def get_interest_over_time(keywords_list, geo='', timeframe='today 12-m'):
     """
     获取关键词列表的随时间变化的搜索兴趣数据。
-    复用现有 User-Agent 轮换和 request_limiter 单例。
-    与 get_related_queries 相同的无限重试逻辑。
-    返回 DataFrame 或 None。
+    429/API quota 连续重试超过 max_429_retries 次后返回 None。
     """
     user_agents = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -266,6 +261,9 @@ def get_interest_over_time(keywords_list, geo='', timeframe='today 12-m'):
     ]
 
     from config import RETRY_WAIT_CONFIG
+
+    max_429 = RETRY_WAIT_CONFIG.get('max_429_retries', 5)
+    consecutive_429 = 0
 
     while True:
         tr = Trends(hl='zh-CN')
@@ -294,21 +292,22 @@ def get_interest_over_time(keywords_list, geo='', timeframe='today 12-m'):
             error_msg = str(e)
             print(f"获取 interest_over_time 时出错: {error_msg}")
 
-            if "API quota exceeded" in error_msg:
-                wait_time = random.uniform(
-                    RETRY_WAIT_CONFIG.get('rate_limit_wait_min_seconds', 300),
-                    RETRY_WAIT_CONFIG.get('rate_limit_wait_max_seconds', 360)
-                )
-                print(f"API配额超限，等待 {wait_time:.1f} 秒后重试...")
-                time.sleep(wait_time)
-                continue
+            is_rate_limit = (
+                "API quota exceeded" in error_msg
+                or "429" in error_msg
+                or "Too Many Requests" in error_msg
+            )
 
-            if "429" in error_msg or "Too Many Requests" in error_msg:
+            if is_rate_limit:
+                consecutive_429 += 1
+                if consecutive_429 >= max_429:
+                    print(f"关键词 {keywords_list} 连续 {consecutive_429} 次 429，跳过")
+                    return None
                 wait_time = random.uniform(
                     RETRY_WAIT_CONFIG.get('rate_limit_wait_min_seconds', 300),
                     RETRY_WAIT_CONFIG.get('rate_limit_wait_max_seconds', 360)
                 )
-                print(f"遭遇429限流，等待 {wait_time:.1f} 秒后重试...")
+                print(f"限流重试 {consecutive_429}/{max_429}，等待 {wait_time:.1f} 秒...")
                 time.sleep(wait_time)
                 continue
 

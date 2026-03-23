@@ -343,39 +343,90 @@ def generate_enhanced_report(enriched, directory):
     return csv_path, md_path
 
 
+def _load_checkpoint(directory):
+    """从今天已有的 JSON 文件恢复已采集数据，实现断点续跑。"""
+    all_results = {}
+    high_rising_trends = []
+    collected_keywords = set()
+
+    if not os.path.exists(directory):
+        return all_results, high_rising_trends, collected_keywords
+
+    for filename in os.listdir(directory):
+        if not filename.startswith('related_queries_') or not filename.endswith('.json'):
+            continue
+        filepath = os.path.join(directory, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                raw = json.load(f)
+            keyword = raw.get('keyword', '')
+            if not keyword or keyword in collected_keywords:
+                continue
+            collected_keywords.add(keyword)
+
+            rq = raw.get('related_queries', {})
+            data = {}
+            for key in ('rising', 'top'):
+                records = rq.get(key)
+                if records and isinstance(records, list):
+                    data[key] = pd.DataFrame(records)
+                else:
+                    data[key] = None
+
+            all_results[keyword] = data
+            rising_trends = check_rising_trends(data, keyword)
+            if rising_trends:
+                high_rising_trends.extend(
+                    [(keyword, rk, val) for rk, val in rising_trends]
+                )
+        except Exception as e:
+            logging.warning(f"加载 checkpoint 文件失败 {filename}: {e}")
+
+    return all_results, high_rising_trends, collected_keywords
+
+
 def process_trends():
     """Main function to process trends data"""
     try:
         logging.info("Starting daily trends processing")
-        
+
         # 处理特殊的 timeframe 格式
         timeframe = TRENDS_CONFIG['timeframe']
         actual_timeframe = get_date_range_timeframe(timeframe)
-        
+
         logging.info(f"Using configuration: timeframe={actual_timeframe}, geo={TRENDS_CONFIG['geo'] or 'Global'}")
         directory = create_daily_directory()
-        
-        all_results = {}
-        high_rising_trends = []
-        
+
+        # 断点续跑：从已有 JSON 文件恢复数据
+        all_results, high_rising_trends, collected_keywords = _load_checkpoint(directory)
+        if collected_keywords:
+            logging.info(f"断点续跑：已恢复 {len(collected_keywords)} 个关键词，跳过已采集词根")
+
+        # 过滤掉已采集的关键词
+        remaining_keywords = [kw for kw in KEYWORDS if kw not in collected_keywords]
+        logging.info(f"待采集: {len(remaining_keywords)}/{len(KEYWORDS)} 个关键词")
+
+        if not remaining_keywords:
+            logging.info("所有关键词已采集完成，跳过 Stage 1")
+
         # 将关键词分批处理，使用实际的 timeframe
-        for i in range(0, len(KEYWORDS), RATE_LIMIT_CONFIG['batch_size']):
-            keywords_batch = KEYWORDS[i:i + RATE_LIMIT_CONFIG['batch_size']]
+        for i in range(0, len(remaining_keywords), RATE_LIMIT_CONFIG['batch_size']):
+            keywords_batch = remaining_keywords[i:i + RATE_LIMIT_CONFIG['batch_size']]
             # 传递实际的 timeframe 到查询函数
             success = process_keywords_batch(
-                keywords_batch, 
-                directory, 
-                all_results, 
+                keywords_batch,
+                directory,
+                all_results,
                 high_rising_trends,
                 actual_timeframe
             )
-            
+
             if not success:
                 logging.error(f"Failed to process batch starting with keyword: {keywords_batch[0]}")
                 continue
-            
+
             # 如果不是最后一批，等待一段时间再处理下一批
-            if i + RATE_LIMIT_CONFIG['batch_size'] < len(KEYWORDS):
+            if i + RATE_LIMIT_CONFIG['batch_size'] < len(remaining_keywords):
                 wait_time = RATE_LIMIT_CONFIG['batch_interval'] + random.uniform(
                     0,
                     RATE_LIMIT_CONFIG.get('batch_interval_jitter_max', 60)

@@ -36,8 +36,9 @@ RATE_LIMIT_CONFIG = {
     'max_retries': 3,
     'min_delay_between_queries': 15,  # 最小延迟（秒）
     'max_delay_between_queries': 25,  # 最大延迟（秒）
-    'batch_size': 3,                  # 每批处理的关键词数量
-    'batch_interval': 300,            # 批次间隔时间（秒）
+    'batch_size': 5,                  # 每批处理的关键词数量（5词×20s内部延迟≈100s/批）
+    'batch_interval': 180,            # 批次间隔时间（秒）（120偏激进，180兼顾速度与稳定性）
+    'batch_interval_jitter_max': 30,  # 批次间隔随机抖动上限（秒）
 }
 
 # Schedule Configuration
@@ -100,6 +101,7 @@ RETRY_WAIT_CONFIG = {
     'rate_limit_wait_max_seconds': 360,     # 429/API quota 最大等待
     'empty_response_wait_min_seconds': 60,  # NoneType 最小等待
     'empty_response_wait_max_seconds': 120, # NoneType 最大等待
+    'max_429_retries': 5,                   # 单个关键词最大 429 连续重试次数，超过则跳过
 }
 
 # 内容黑名单过滤配置（关键词匹配，不区分大小写）
